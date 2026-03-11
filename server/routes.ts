@@ -40,6 +40,16 @@ export async function registerRoutes(
     if (body.jobUrl !== undefined) updates.jobUrl = body.jobUrl;
     if (body.notes !== undefined) updates.notes = body.notes;
 
+    if (body.targetSalary !== undefined) {
+      if (body.targetSalary === null) {
+        updates.targetSalary = null;
+      } else if (typeof body.targetSalary !== "number" || !Number.isInteger(body.targetSalary) || body.targetSalary < 0) {
+        return res.status(400).json({ message: "Target salary must be a non-negative whole number" });
+      } else {
+        updates.targetSalary = body.targetSalary;
+      }
+    }
+
     if (body.status !== undefined) {
       if (!STATUSES.includes(body.status)) {
         return res.status(400).json({ message: `Status must be one of: ${STATUSES.join(", ")}` });
