@@ -39,6 +39,12 @@ export function validateProspect(data: Record<string, unknown>): { valid: boolea
     }
   }
 
+  if (data.notes !== undefined && data.notes !== null) {
+    if (typeof data.notes !== "string") {
+      errors.push("Notes must be a string");
+    }
+  }
+
   if (data.targetSalary !== undefined && data.targetSalary !== null) {
     const salary = Number(data.targetSalary);
     if (isNaN(salary) || !Number.isFinite(salary)) {

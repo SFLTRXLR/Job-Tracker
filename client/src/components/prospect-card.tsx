@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import type { Prospect } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ExternalLink, Trash2, Pencil, Flame, ThumbsUp, Minus, DollarSign } from "lucide-react";
+import { ExternalLink, Trash2, Pencil, Flame, ThumbsUp, Minus, DollarSign, StickyNote } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -131,6 +132,88 @@ function InterestIndicator({ level }: { level: string }) {
   }
 }
 
+function NotesModal({ prospect }: { prospect: Prospect }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(prospect.notes ?? "");
+
+  useEffect(() => {
+    if (open) {
+      setDraft(prospect.notes ?? "");
+    }
+  }, [open, prospect.notes]);
+
+  const mutation = useMutation({
+    mutationFn: async (notes: string | null) => {
+      await apiRequest("PATCH", `/api/prospects/${prospect.id}`, { notes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/prospects"] });
+      setOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to save notes", variant: "destructive" });
+    },
+  });
+
+  const hasNotes = !!prospect.notes;
+
+  return (
+    <>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        data-testid={`button-notes-${prospect.id}`}
+      >
+        <StickyNote
+          className={`w-3.5 h-3.5 ${hasNotes ? "text-amber-500" : "text-muted-foreground/40"}`}
+        />
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Notes — {prospect.companyName}</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Add notes about this opportunity…"
+            className="min-h-[120px]"
+            data-testid={`textarea-notes-${prospect.id}`}
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setOpen(false)}
+              data-testid={`button-notes-cancel-${prospect.id}`}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={mutation.isPending}
+              onClick={() => {
+                const value = draft.trim() === "" ? null : draft;
+                mutation.mutate(value);
+              }}
+              data-testid={`button-notes-save-${prospect.id}`}
+            >
+              {mutation.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export function ProspectCard({ prospect }: { prospect: Prospect }) {
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
@@ -196,6 +279,7 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
         <div className="flex items-center gap-1.5 flex-wrap">
           <InterestIndicator level={prospect.interestLevel} />
           <InlineSalaryEditor prospect={prospect} />
+          <NotesModal prospect={prospect} />
         </div>
 
         {prospect.jobUrl && (
@@ -212,11 +296,6 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
           </a>
         )}
 
-        {prospect.notes && (
-          <p className="text-xs text-muted-foreground line-clamp-2" data-testid={`text-notes-${prospect.id}`}>
-            {prospect.notes}
-          </p>
-        )}
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
