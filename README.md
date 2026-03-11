@@ -1,4 +1,4 @@
-# JobTrackr
+# HireMe
 
 A Kanban-style job search tracker. Organize your job prospects across pipeline stages, from Bookmarked through Offer (or Rejected/Withdrawn). Built with React, Express, and PostgreSQL.
 
@@ -7,7 +7,7 @@ A Kanban-style job search tracker. Organize your job prospects across pipeline s
 ## File Structure
 
 ```
-jobtrackr/
+HireMe/
 ├── shared/
 │   └── schema.ts                    # Drizzle table definition, Zod schemas, TS types
 ├── server/
