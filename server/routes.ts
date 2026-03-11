@@ -38,7 +38,12 @@ export async function registerRoutes(
     if (body.companyName !== undefined) updates.companyName = body.companyName;
     if (body.roleTitle !== undefined) updates.roleTitle = body.roleTitle;
     if (body.jobUrl !== undefined) updates.jobUrl = body.jobUrl;
-    if (body.notes !== undefined) updates.notes = body.notes;
+    if (body.notes !== undefined) {
+      if (body.notes !== null && typeof body.notes !== "string") {
+        return res.status(400).json({ message: "Notes must be a string or null" });
+      }
+      updates.notes = body.notes;
+    }
 
     if (body.targetSalary !== undefined) {
       if (body.targetSalary === null) {
