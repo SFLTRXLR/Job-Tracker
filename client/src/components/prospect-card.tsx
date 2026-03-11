@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Prospect } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Trash2, Pencil, Flame, ThumbsUp, Minus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ExternalLink, Trash2, Pencil, Flame, ThumbsUp, Minus, DollarSign } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +13,95 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EditProspectForm } from "./edit-prospect-form";
+
+function formatCurrency(value: number): string {
+  return `$${value.toLocaleString("en-US")}`;
+}
+
+function InlineSalaryEditor({ prospect }: { prospect: Prospect }) {
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(prospect.targetSalary != null ? String(prospect.targetSalary) : "");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const savedRef = useRef(false);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+      savedRef.current = false;
+    }
+  }, [editing]);
+
+  const mutation = useMutation({
+    mutationFn: async (salary: number | null) => {
+      await apiRequest("PATCH", `/api/prospects/${prospect.id}`, { targetSalary: salary });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/prospects"] });
+      setEditing(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update salary", variant: "destructive" });
+    },
+  });
+
+  const handleSave = () => {
+    if (savedRef.current || mutation.isPending) return;
+    savedRef.current = true;
+    const raw = value.replace(/[^0-9]/g, "");
+    const salary = raw === "" ? null : parseInt(raw, 10);
+    if (salary !== null && salary < 0) return;
+    mutation.mutate(salary);
+  };
+
+  if (editing) {
+    return (
+      <div
+        className="relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+        <Input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          className="h-6 text-xs pl-5 pr-2 w-28"
+          data-testid={`input-inline-salary-${prospect.id}`}
+          value={value}
+          onChange={(e) => {
+            const raw = e.target.value.replace(/[^0-9]/g, "");
+            setValue(raw);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+            if (e.key === "Escape") setEditing(false);
+          }}
+          onBlur={handleSave}
+        />
+      </div>
+    );
+  }
+
+  if (prospect.targetSalary == null) return null;
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 cursor-pointer hover:underline"
+      onClick={(e) => {
+        e.stopPropagation();
+        setValue(String(prospect.targetSalary ?? ""));
+        setEditing(true);
+      }}
+      data-testid={`text-salary-${prospect.id}`}
+    >
+      <DollarSign className="w-3 h-3" />
+      {formatCurrency(prospect.targetSalary)}
+    </span>
+  );
+}
 
 function InterestIndicator({ level }: { level: string }) {
   switch (level) {
@@ -105,6 +195,7 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
 
         <div className="flex items-center gap-1.5 flex-wrap">
           <InterestIndicator level={prospect.interestLevel} />
+          <InlineSalaryEditor prospect={prospect} />
         </div>
 
         {prospect.jobUrl && (

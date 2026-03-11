@@ -22,7 +22,7 @@ client/src/
   App.tsx                     - Root component, routing, providers
   pages/home.tsx              - Kanban board with 7 status columns
   components/
-    prospect-card.tsx         - Card component with edit/delete actions
+    prospect-card.tsx         - Card component with edit/delete actions and inline salary editing
     add-prospect-form.tsx     - Dialog form for creating prospects
     edit-prospect-form.tsx    - Dialog form for editing prospects
     ui/                       - shadcn/ui primitives
@@ -30,7 +30,7 @@ client/src/
 
 ## Database
 
-Single `prospects` table: id, company_name, role_title, job_url, status, interest_level, notes, created_at.
+Single `prospects` table: id, company_name, role_title, job_url, status, interest_level, notes, target_salary (nullable integer), created_at.
 
 - **Statuses**: Bookmarked, Applied, Phone Screen, Interviewing, Offer, Rejected, Withdrawn
 - **Interest levels**: High, Medium, Low
